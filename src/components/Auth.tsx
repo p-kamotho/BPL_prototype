@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { Trophy, LogIn, UserPlus, AlertCircle } from 'lucide-react';
+import { mockLogin, mockRegister } from '../utils/mockAuth';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,30 +25,59 @@ export default function Auth() {
       : { full_name: fullName, email, password, role, phone };
 
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
+      // Try to connect to backend first
       let data;
-      const contentType = res.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await res.json();
-      } else {
-        const text = await res.text();
-        throw new Error(`Server returned non-JSON response: ${text.slice(0, 100)}`);
+      let usesMockBackend = false;
+      
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          // Backend not available, use mock
+          usesMockBackend = true;
+        }
+
+        if (!usesMockBackend && res.ok) {
+          if (isLogin) {
+            setUser(data.user);
+          } else {
+            setSuccess('Registration successful! Please wait for admin approval.');
+            setIsLogin(true);
+          }
+          return;
+        }
+      } catch (fetchErr) {
+        // Network error or fetch failed, use mock backend
+        usesMockBackend = true;
       }
 
-      if (res.ok) {
+      // Use mock backend if real backend not available
+      if (usesMockBackend) {
+        console.log('Backend unavailable, using mock authentication for prototype testing');
+        
         if (isLogin) {
-          setUser(data.user);
+          const result = await mockLogin(email, password);
+          if ('user' in result) {
+            setUser(result.user);
+          } else {
+            setError(result.error);
+          }
         } else {
-          setSuccess('Registration successful! Please wait for admin approval.');
-          setIsLogin(true);
+          const result = await mockRegister(fullName, email, password, role, phone);
+          if ('success' in result && result.success) {
+            setSuccess(result.message || 'Registration successful! You can now log in.');
+            setIsLogin(true);
+          } else if ('error' in result) {
+            setError(result.error);
+          }
         }
-      } else {
-        setError(data.error || 'Something went wrong');
       }
     } catch (err: any) {
       console.error('Auth error:', err);
@@ -84,6 +114,12 @@ export default function Auth() {
             >
               Register
             </button>
+          </div>
+
+          {/* Prototype Mode Banner */}
+          <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-2 text-amber-700 text-xs">
+            <AlertCircle size={16} className="flex-shrink-0" />
+            <span><strong>Prototype Mode:</strong> Using simulated authentication. For demo purposes only.</span>
           </div>
 
           {error && (
@@ -170,6 +206,24 @@ export default function Auth() {
               {isLogin ? 'Sign In' : 'Create Account'}
             </button>
           </form>
+
+          {/* Demo Credentials */}
+          {isLogin && (
+            <div className="mt-6 pt-6 border-t border-slate-200">
+              <p className="text-xs text-slate-600 font-semibold mb-2">📝 Demo Credentials:</p>
+              <div className="bg-slate-50 rounded-xl p-3 space-y-2 text-xs text-slate-700">
+                <div>
+                  <span className="font-semibold">Email:</span> admin@badminton.ke
+                </div>
+                <div>
+                  <span className="font-semibold">Password:</span> admin123
+                </div>
+                <div className="mt-2 text-slate-600 italic">
+                  Or create a new account with any email to register as a player
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

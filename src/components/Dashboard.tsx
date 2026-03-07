@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { DashboardLayout } from '../modules/dashboard/DashboardLayout';
+import { safeFetch } from '../utils/mockApi';
 import { 
   Users, 
   Trophy, 
@@ -24,9 +25,9 @@ export default function Dashboard() {
           if (activeRole?.role_name === 'super_admin') {
             // Super Admin specific data fetching
             const responses = await Promise.all([
-              fetch('/api/admin/users'),
-              fetch('/api/tournaments'),
-              fetch('/api/admin/audit-logs'),
+              safeFetch('/api/admin/users'),
+              safeFetch('/api/tournaments'),
+              safeFetch('/api/admin/audit-logs'),
             ]);
 
             const [usersRes, tournamentsRes, logsRes] = responses;
@@ -55,33 +56,20 @@ export default function Dashboard() {
               status: 'logged'
             })));
           } else {
-            // Regular user data fetching
+            // Regular user data fetching - use safeFetch for graceful fallback
             const responses = await Promise.all([
-              fetch(`/api/players?user_id=${user.user_id}`),
-              fetch(`/api/tournaments`),
-              fetch(`/api/matches?user_id=${user.user_id}`),
-              fetch(`/api/clubs?user_id=${user.user_id}`)
+              safeFetch(`/api/players?user_id=${user.user_id}`),
+              safeFetch(`/api/tournaments`),
+              safeFetch(`/api/matches?user_id=${user.user_id}`),
+              safeFetch(`/api/clubs?user_id=${user.user_id}`)
             ]);
 
             const [playersRes, tournamentsRes, matchesRes, clubsRes] = responses;
 
-          const checkResponse = async (res: Response, name: string) => {
-            if (!res.ok) {
-              const text = await res.text();
-              throw new Error(`Failed to fetch ${name}: ${res.status} ${res.statusText} - ${text.substring(0, 100)}`);
-            }
-            const contentType = res.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-              const text = await res.text();
-              throw new Error(`Invalid content type for ${name}: ${contentType} - ${text.substring(0, 100)}`);
-            }
-            return res.json();
-          };
-
-          const players = await checkResponse(playersRes, 'players');
-          const tournaments = await checkResponse(tournamentsRes, 'tournaments');
-          const matches = await checkResponse(matchesRes, 'matches');
-          const clubs = await checkResponse(clubsRes, 'clubs');
+          const players = await playersRes.json();
+          const tournaments = await tournamentsRes.json();
+          const matches = await matchesRes.json();
+          const clubs = await clubsRes.json();
 
           setStats([
             { label: 'Total Players', value: Array.isArray(players) ? players.length.toString() : '0', icon: <Users className="text-blue-600" />, trend: 'Registered', color: 'bg-blue-50' },
