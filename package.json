@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "start": "serve -s dist"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -35,3 +36,5 @@
     "vite": "^6.2.0"
   }
 }
+
+
