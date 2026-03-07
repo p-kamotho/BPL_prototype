@@ -48,7 +48,7 @@ export default function AboutPage({ onBack, onNavigate }: AboutPageProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h1 className="text-5xl sm:text-6xl font-extrabold text-white mb-6">About Badminton Kenya</h1>
+            <h1 className="text-5xl sm:text-6xl font-extrabold text-white mb-6">About Badminton Pro League</h1>
             <p className="text-xl text-slate-300 leading-relaxed">
               We're building Africa's most trusted badminton tournament platform, connecting players, clubs, and counties through transparency and innovation.
             </p>
@@ -124,7 +124,7 @@ export default function AboutPage({ onBack, onNavigate }: AboutPageProps) {
             <h2 className="text-4xl font-bold text-slate-900 mb-8">Our Story</h2>
             <div className="space-y-6 text-slate-600 text-lg leading-relaxed">
               <p>
-                Badminton Kenya was born from a simple observation: the sport we love deserved better. For years, tournament organizers struggled with manual bracket management, players waited days for results, and controversies arose from lack of transparency.
+                Badminton Pro League was born from a simple observation: the sport we love deserved better. For years, tournament organizers struggled with manual bracket management, players waited days for results, and controversies arose from lack of transparency.
               </p>
               <p>
                 In 2024, a small team of badminton enthusiasts and software engineers came together with a mission: to build a digital platform that would transform how badminton tournaments are organized and experienced across Kenya.
@@ -172,7 +172,7 @@ export default function AboutPage({ onBack, onNavigate }: AboutPageProps) {
                 <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-lg flex items-center justify-center text-slate-900">
                   <Trophy size={18} />
                 </div>
-                <span className="font-bold text-white">Badminton Kenya</span>
+                <span className="font-bold text-white">Badminton Pro League</span>
               </div>
               <p className="text-sm text-slate-400">Professional badminton tournaments, simplified.</p>
             </div>
@@ -202,7 +202,7 @@ export default function AboutPage({ onBack, onNavigate }: AboutPageProps) {
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-slate-400">© 2026 Badminton Kenya. Built for champions, by the community.</p>
+            <p className="text-sm text-slate-400">© 2026 Badminton Pro League. Built for champions, by the community.</p>
             <p className="text-sm text-slate-500">Created by <span className="text-cyan-400 font-semibold">Startech Group Solutions</span></p>
             <div className="flex gap-6 text-slate-400">
               <a href="#" className="hover:text-emerald-400 transition-colors text-sm">Twitter</a>
