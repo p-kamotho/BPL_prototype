@@ -55,6 +55,8 @@ export const moduleRegistry: ModuleConfig[] = [
   { id: 'match-history', label: 'Match History', icon: History, permission: 'view_match_history', path: '/match-history' },
   { id: 'notifications', label: 'Notifications', icon: Bell, permission: 'view_notifications', path: '/notifications' },
   { id: 'appeals', label: 'Appeals / Reports', icon: Flag, permission: 'file_appeals', path: '/appeals' },
+  { id: 'tournament-registration', label: 'Register Tournament', icon: Trophy, permission: 'register_tournaments', path: '/tournament-registration' },
+  { id: 'tournament-calendar', label: 'Tournament Calendar', icon: Calendar, permission: 'view_tournaments', path: '/tournament-calendar' },
   { id: 'settings', label: 'Settings', icon: Settings, permission: 'view_settings', path: '/settings' },
 
   // Referee Portal
@@ -71,6 +73,7 @@ export const moduleRegistry: ModuleConfig[] = [
   { id: 'club-players', label: 'Players', icon: Users, permission: 'manage_club_players', path: '/club-players', section: 'Club Management' },
   { id: 'club-coaches', label: 'Coaches', icon: UserCheck, permission: 'manage_club_coaches', path: '/club-coaches', section: 'Club Management' },
   { id: 'tournament-registrations', label: 'Tournament Registrations', icon: Trophy, permission: 'register_tournaments', path: '/tournament-registrations', section: 'Tournaments' },
+  { id: 'tournament-calendar', label: 'Tournament Calendar', icon: Calendar, permission: 'view_tournaments', path: '/tournament-calendar', section: 'Tournaments' },
   { id: 'financial-overview', label: 'Financial Overview', icon: DollarSign, permission: 'view_financials', path: '/financial-overview', section: 'Financial & Reporting' },
   { id: 'sanctions-compliance', label: 'Sanctions & Compliance', icon: AlertCircle, permission: 'view_sanctions', path: '/sanctions-compliance', section: 'Compliance' },
   { id: 'match-reports', label: 'Match Reports', icon: FileText, permission: 'view_match_reports', path: '/match-reports', section: 'Reports & Analytics' },
@@ -109,6 +112,7 @@ export const moduleRegistry: ModuleConfig[] = [
   { id: 'referee-assignment', label: 'Referee Assignment', icon: UserCheck, permission: 'assign_referees', path: '/referee-assignment', section: 'Operations', isCollapsed: true },
   { id: 'match-control', label: 'Match Control', icon: Activity, permission: 'control_matches', path: '/match-control', section: 'Operations', isCollapsed: true },
   { id: 'live-results', label: 'Live Results', icon: TrendingUp, permission: 'view_live_results', path: '/live-results', section: 'Operations', isCollapsed: true },
+  { id: 'bracket-generator', label: 'Bracket Generator', icon: Trophy, permission: 'manage_draws', path: '/bracket-generator', section: 'Operations', isCollapsed: true },
 
   { id: 'system-config', label: 'System Config', icon: Settings, permission: 'manage_system_config', path: '/system-config', section: 'System Infrastructure', isCollapsed: true },
   { id: 'logs', label: 'Logs', icon: History, permission: 'view_system_logs', path: '/logs', section: 'System Infrastructure', isCollapsed: true },

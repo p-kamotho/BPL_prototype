@@ -8,6 +8,7 @@ import {
   X
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { ThemeToggle } from './ThemeToggle';
 import { motion, AnimatePresence } from 'motion/react';
 import { moduleRegistry } from '../permissions/registry';
 
@@ -61,20 +62,20 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
     };
 
     return (
-      <div className="h-full flex flex-col bg-white">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+      <div className="h-full flex flex-col bg-white dark:bg-slate-800">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
               <Trophy size={24} />
             </div>
             <div>
-              <h1 className="font-bold text-slate-900 leading-tight">Badminton</h1>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Kenya OS</p>
+              <h1 className="font-bold text-slate-900 dark:text-white leading-tight">Badminton</h1>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Kenya OS</p>
             </div>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="lg:hidden p-2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
@@ -180,9 +181,9 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans overflow-hidden">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 font-sans overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col shrink-0">
+      <aside className="hidden lg:flex w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex-col shrink-0">
         <SidebarContent />
       </aside>
 
@@ -202,7 +203,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-72 bg-white z-50 lg:hidden shadow-2xl"
+              className="fixed inset-y-0 left-0 w-72 bg-white dark:bg-slate-800 z-50 lg:hidden shadow-2xl"
             >
               <SidebarContent />
             </motion.aside>
@@ -213,26 +214,27 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0">
+        <header className="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 lg:px-8 shrink-0">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+              className="lg:hidden p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
             >
               <Menu size={24} />
             </button>
-            <h2 className="text-base lg:text-lg font-semibold text-slate-800 capitalize truncate max-w-[150px] lg:max-w-none">
+            <h2 className="text-base lg:text-lg font-semibold text-slate-800 dark:text-white capitalize truncate max-w-[150px] lg:max-w-none">
               {activeTab.replace('-', ' ')}
             </h2>
           </div>
           <div className="flex items-center gap-3 lg:gap-4">
+            <ThemeToggle />
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-900 truncate max-w-[120px]">{user.full_name}</p>
-              <p className="text-[10px] lg:text-xs text-slate-500 capitalize truncate max-w-[120px]">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-[120px]">{user.full_name}</p>
+              <p className="text-[10px] lg:text-xs text-slate-500 dark:text-slate-400 capitalize truncate max-w-[120px]">
                 {activeRole?.role_name.replace('_', ' ')} 
               </p>
             </div>
-            <div className="w-9 h-9 lg:w-10 lg:h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 border border-slate-200 shrink-0">
+            <div className="w-9 h-9 lg:w-10 lg:h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-600 shrink-0">
               <UserCircle size={24} />
             </div>
           </div>

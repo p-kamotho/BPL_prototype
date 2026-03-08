@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
+import { initializeTheme } from './store/themeStore';
 import Auth from './components/Auth';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
+import ClubManagerDashboard from './components/ClubManagerDashboard';
+import RefereePortal from './components/RefereePortal';
+import PlayerPortal from './components/PlayerPortal';
 import UserManagement from './components/UserManagement';
 import Tournaments from './components/Tournaments';
 import LandingPage from './components/LandingPage';
-import AboutPage from './components/AboutPage';
-import ContactPage from './components/ContactPage';
-import BlogPage from './components/BlogPage';
+import LandingPageNew from './components/LandingPageNew';
+import AboutPageNew from './components/AboutPageNew';
+import ContactPageNew from './components/ContactPageNew';
+import ActivitiesPageNew from './components/ActivitiesPageNew';
 import AuditLog from './audit/AuditLog';
 import SystemSettings from './components/SystemSettings';
 import FinancialOverview from './components/FinancialOverview';
@@ -40,13 +45,21 @@ import ClubCommunications from './components/ClubCommunications';
 import ClubDisputes from './components/ClubDisputes';
 import ClubReports from './components/ClubReports';
 import TournamentRegistration from './components/TournamentRegistration';
+import TournamentRegistrationNew from './components/TournamentRegistrationNew';
+import TournamentCalendar from './components/TournamentCalendar';
+import TournamentBracketGenerator from './components/TournamentBracketGenerator';
 import BracketView from './components/BracketView';
 
 export default function App() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAuth, setShowAuth] = useState(false);
-  const [landingPage, setLandingPage] = useState<'home' | 'about' | 'contact' | 'blog'>('home');
+  const [landingPage, setLandingPage] = useState<'home' | 'about' | 'contact' | 'activities'>('home');
+
+  // Initialize theme on app load
+  useEffect(() => {
+    initializeTheme();
+  }, []);
 
   if (!user) {
     if (showAuth) {
@@ -55,17 +68,17 @@ export default function App() {
 
     // Handle landing page navigation
     if (landingPage === 'about') {
-      return <AboutPage onBack={() => setLandingPage('home')} onNavigate={(page) => setLandingPage(page)} />;
+      return <AboutPageNew onGetStarted={() => setShowAuth(true)} onLogin={() => setShowAuth(true)} onNavigate={(page) => setLandingPage(page)} />;
     }
     if (landingPage === 'contact') {
-      return <ContactPage onBack={() => setLandingPage('home')} onNavigate={(page) => setLandingPage(page)} />;
+      return <ContactPageNew onGetStarted={() => setShowAuth(true)} onLogin={() => setShowAuth(true)} onNavigate={(page) => setLandingPage(page)} />;
     }
-    if (landingPage === 'blog') {
-      return <BlogPage onBack={() => setLandingPage('home')} onNavigate={(page) => setLandingPage(page)} />;
+    if (landingPage === 'activities') {
+      return <ActivitiesPageNew onGetStarted={() => setShowAuth(true)} onLogin={() => setShowAuth(true)} onNavigate={(page) => setLandingPage(page)} />;
     }
 
     return (
-      <LandingPage 
+      <LandingPageNew 
         onGetStarted={() => setShowAuth(true)} 
         onLogin={() => setShowAuth(true)} 
         onNavigate={(page) => setLandingPage(page)}
@@ -77,6 +90,12 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
+      case 'club-manager-dashboard':
+        return <ClubManagerDashboard />;
+      case 'referee-portal':
+        return <RefereePortal />;
+      case 'player-portal':
+        return <PlayerPortal />;
       case 'users':
         return <UserManagement />;
       case 'manage-tournaments':
@@ -149,13 +168,18 @@ export default function App() {
         return <ClubReports />;
       case 'payment-sim':
         return <TournamentRegistration />;
+      case 'tournament-registration':
+        return <TournamentRegistrationNew />;
+      case 'tournament-calendar':
+        return <TournamentCalendar />;
+      case 'bracket-generator':
+        return <TournamentBracketGenerator />;
       case 'bracket-sim':
         return <BracketView />;
       case 'backups':
       case 'feature-flags':
       case 'notifications-engine':
       case 'maintenance':
-      case 'settings':
       case 'certification':
       case 'assigned-matches':
       case 'match-scoring':
@@ -163,13 +187,6 @@ export default function App() {
       case 'performance-reviews':
       case 'compliance-status':
       case 'ta-reports':
-      case 'tournament-details':
-      case 'categories-draws':
-      case 'registered-players':
-      case 'referee-assignment':
-      case 'match-control':
-      case 'live-results':
-      case 'disciplinary-actions':
       case 'governance':
       case 'national-rankings':
         return (
