@@ -51,7 +51,7 @@ export default function UserManagement() {
   const handleApproveRole = (userRoleId: number) => {
     setUsers(users.map(user => ({
       ...user,
-      roles: user.roles.map(role =>
+      roles: (user.roles || []).map(role =>
         role.id === userRoleId ? { ...role, status: 'approved' as const } : role
       )
     })));
@@ -62,7 +62,7 @@ export default function UserManagement() {
   const handleRevokeRole = (userRoleId: number) => {
     setUsers(users.map(user => ({
       ...user,
-      roles: user.roles.map(role =>
+      roles: (user.roles || []).map(role =>
         role.id === userRoleId ? { ...role, status: 'rejected' as const } : role
       )
     })));
@@ -135,7 +135,7 @@ export default function UserManagement() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-2">
-                      {user.roles.map((role) => (
+                      {(user.roles || []).map((role) => (
                         <div key={role.id} className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-2 py-1 rounded-lg">
                           <span className="text-xs font-semibold text-slate-600 capitalize">
                             {role.role_name.replace('_', ' ')}

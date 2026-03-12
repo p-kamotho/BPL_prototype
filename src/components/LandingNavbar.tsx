@@ -1,5 +1,5 @@
-import React from 'react';
-import { Trophy } from 'lucide-react';
+import React, { useState } from 'react';
+import { Trophy, Menu, X } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
 interface LandingNavbarProps {
@@ -10,6 +10,8 @@ interface LandingNavbarProps {
 }
 
 export default function LandingNavbar({ onGetStarted, onLogin, onNavigate, currentPage }: LandingNavbarProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   const navItems = [
     { id: 'home', label: 'Home' },
     { id: 'about', label: 'About' },
@@ -53,22 +55,72 @@ export default function LandingNavbar({ onGetStarted, onLogin, onNavigate, curre
           </div>
 
           {/* Right side buttons */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
             <button
               onClick={onLogin}
-              className="px-4 py-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg font-semibold transition text-sm"
+              className="hidden sm:block px-4 py-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg font-semibold transition text-sm"
             >
               Sign In
             </button>
             <button
               onClick={onGetStarted}
-              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition shadow-lg text-sm"
+              className="hidden sm:block px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition shadow-lg text-sm"
             >
               Get Started
             </button>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
+        
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-200 dark:border-slate-700 py-4 bg-white dark:bg-slate-800">
+            <div className="flex flex-col gap-3 px-4">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    onNavigate?.(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`font-semibold transition-colors text-left py-2 ${
+                    currentPage === item.id
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-3 flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    onLogin();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg font-semibold transition text-sm"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => {
+                    onGetStarted();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition text-sm"
+                >
+                  Get Started
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

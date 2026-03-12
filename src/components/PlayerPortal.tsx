@@ -1,51 +1,77 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { safeFetch } from '../utils/mockApi';
+import ApiClient from '../utils/api';
 import { 
   Trophy, 
   Megaphone,
   Edit2,
   Upload,
-  AlertCircle
+  AlertCircle,
+  Loader
 } from 'lucide-react';
+
+interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  created_at: string;
+  category?: string;
+}
+
+interface DashboardStats {
+  clubs_count: number;
+  tournaments_registered: number;
+  matches_played: number;
+  ranking: {
+    position: number | null;
+    wins: number;
+    losses: number;
+  };
+}
 
 export default function PlayerPortal() {
   const { user } = useAuthStore();
-  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     full_name: user?.full_name || '',
     phone: user?.phone || '',
-    ranking_points: 0
   });
 
+  // Fetch dashboard data and notifications
   useEffect(() => {
-    // Mock announcements for demo
-    setAnnouncements([
-      {
-        id: 1,
-        title: 'Kenya National Championship 2025 Registrations Open',
-        content: 'Registrations for the Kenya National Championship are now open. Deadline: May 31st, 2025.',
-        date: new Date().toLocaleDateString(),
-        category: 'Tournament'
-      },
-      {
-        id: 2,
-        title: 'New Ranking System Implemented',
-        content: 'We have updated our ranking system for better accuracy and fairness.',
-        date: new Date(Date.now() - 86400000).toLocaleDateString(),
-        category: 'System'
-      },
-      {
-        id: 3,
-        title: 'Upcoming Referee Training',
-        content: 'Elite refereeing workshop scheduled for April 15-17, 2025.',
-        date: new Date(Date.now() - 172800000).toLocaleDateString(),
-        category: 'Training'
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        // Fetch notifications
+        const notifResponse = await ApiClient.getNotifications();
+        if (notifResponse.status === 'success') {
+          const notifs = Array.isArray(notifResponse.data) ? notifResponse.data : [];
+          setNotifications(notifs.slice(0, 10)); // Limit to 10 recent
+        }
+
+        // Fetch dashboard stats
+        const dashResponse = await ApiClient.getUserDashboard();
+        if (dashResponse.status === 'success') {
+          setDashboardStats(dashResponse.data);
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
       }
-    ]);
-  }, []);
+    };
+
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -61,25 +87,32 @@ export default function PlayerPortal() {
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await safeFetch('/api/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user?.user_id,
-          full_name: formData.full_name,
-          phone: formData.phone,
-          profile_data: { photo: profilePhoto }
-        })
+      const response = await ApiClient.updateProfile({
+        full_name: formData.full_name,
+        phone: formData.phone,
       });
 
-      if (response.ok) {
+      if (response.status === 'success') {
         setEditingProfile(false);
         alert('Profile updated successfully!');
+      } else {
+        setError(response.message || 'Failed to update profile');
       }
-    } catch (error) {
-      console.error('Failed to update profile:', error);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update profile');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <Loader size={32} className="text-emerald-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600 dark:text-slate-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -92,48 +125,76 @@ export default function PlayerPortal() {
               <p className="text-slate-600 dark:text-slate-400 mt-2">Stay updated with the latest news and manage your profile</p>
             </div>
 
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl flex items-center gap-2">
+                <AlertCircle className="text-red-600 dark:text-red-400" size={20} />
+                <span className="text-red-700 dark:text-red-300">{error}</span>
+              </div>
+            )}
+
             {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
                 <Trophy className="text-amber-600 mb-2" size={24} />
-                <p className="text-sm text-slate-600 dark:text-slate-400">Ranking Points</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">1,250</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Ranking Position</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {dashboardStats?.ranking?.position || 'N/A'}
+                </p>
               </div>
               <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
                 <Megaphone className="text-emerald-600 mb-2" size={24} />
                 <p className="text-sm text-slate-600 dark:text-slate-400">Active Tournaments</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">3</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {dashboardStats?.tournaments_registered || 0}
+                </p>
               </div>
             </div>
 
-            {/* Announcements Section */}
+            {/* Additional Stats */}
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
+                <div className="text-emerald-600 font-bold text-lg mb-1">{dashboardStats?.ranking?.wins || 0}</div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Wins</p>
+              </div>
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
+                <div className="text-red-600 font-bold text-lg mb-1">{dashboardStats?.ranking?.losses || 0}</div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Losses</p>
+              </div>
+            </div>
+
+            {/* Notifications Section */}
             <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6">
               <div className="flex items-center gap-2 mb-6">
                 <Megaphone size={24} className="text-emerald-600" />
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Announcements</h2>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Notifications</h2>
               </div>
 
-              <div className="space-y-4">
-                {announcements.map((announcement) => (
-                  <div 
-                    key={announcement.id} 
-                    className="border-b border-slate-200 dark:border-slate-700 pb-4 last:border-0"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-slate-900 dark:text-white">{announcement.title}</h3>
-                          <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full">
-                            {announcement.category}
-                          </span>
+              {notifications.length === 0 ? (
+                <p className="text-slate-500 dark:text-slate-400 text-center py-8">No notifications yet</p>
+              ) : (
+                <div className="space-y-4">
+                  {notifications.map((notification) => (
+                    <div 
+                      key={notification.id} 
+                      className="border-b border-slate-200 dark:border-slate-700 pb-4 last:border-0"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
+                            {notification.title}
+                          </h3>
+                          <p className="text-slate-600 dark:text-slate-400 text-sm mb-2">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-500">
+                            {new Date(notification.created_at).toLocaleDateString()}
+                          </p>
                         </div>
-                        <p className="text-slate-600 dark:text-slate-400 text-sm mb-2">{announcement.content}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500">{announcement.date}</p>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -230,17 +291,22 @@ export default function PlayerPortal() {
                   
                   <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
                     <p className="text-sm text-slate-600 dark:text-slate-400">Name</p>
-                    <p className="font-semibold text-slate-900 dark:text-white">{user?.full_name}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{user?.full_name || 'N/A'}</p>
                   </div>
                   
                   <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
                     <p className="text-sm text-slate-600 dark:text-slate-400">Email</p>
-                    <p className="font-semibold text-slate-900 dark:text-white">{user?.email}</p>
+                    <p className="font-semibold text-slate-900 dark:text-white break-all">{user?.email || 'N/A'}</p>
                   </div>
                   
                   <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
                     <p className="text-sm text-slate-600 dark:text-slate-400">Phone</p>
                     <p className="font-semibold text-slate-900 dark:text-white">{user?.phone || 'Not set'}</p>
+                  </div>
+
+                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Clubs</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{dashboardStats?.clubs_count || 0}</p>
                   </div>
                 </div>
               )}

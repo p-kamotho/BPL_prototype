@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { DashboardLayout } from '../modules/dashboard/DashboardLayout';
-import { safeFetch } from '../utils/mockApi';
+import ApiClient from '../utils/api';
 import { 
   Users, 
   Trophy, 
@@ -13,89 +13,162 @@ import {
   HeartPulse
 } from 'lucide-react';
 
+interface Stat {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  trend: string;
+  color: string;
+}
+
+interface ActivityItem {
+  id: number;
+  title: string;
+  description: string;
+  timestamp: string;
+  status: string;
+}
+
 export default function Dashboard() {
   const { user, activeRole } = useAuthStore();
-  const [stats, setStats] = useState<any[]>([]);
-  const [activities, setActivities] = useState<any[]>([]);
+  const [stats, setStats] = useState<Stat[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (user?.user_id) {
       const fetchData = async () => {
         try {
+          setLoading(true);
+          setError('');
+
           if (activeRole?.role_name === 'super_admin') {
-            // Super Admin specific data fetching
-            const responses = await Promise.all([
-              safeFetch('/api/admin/users'),
-              safeFetch('/api/tournaments'),
-              safeFetch('/api/admin/audit-logs'),
+            // Super Admin dashboard
+            const [usersRes, tournamentsRes, logsRes] = await Promise.all([
+              ApiClient.getAdminUsers(),
+              ApiClient.getTournaments(),
+              ApiClient.getAuditLogs(),
             ]);
 
-            const [usersRes, tournamentsRes, logsRes] = responses;
-            const users = await usersRes.json();
-            const tournaments = await tournamentsRes.json();
-            const logs = await logsRes.json();
+            let usersCount = 0;
+            let activeTournaments = 0;
+            let pendingApprovals = 0;
 
-            const pendingApprovals = users.reduce((acc: number, u: any) => 
-              acc + u.roles.filter((r: any) => r.status === 'pending').length, 0
-            );
+            if (usersRes.status === 'success' && Array.isArray(usersRes.data)) {
+              usersCount = usersRes.data.filter((u: any) => u.status === 'active').length;
+            }
+
+            if (tournamentsRes.status === 'success' && Array.isArray(tournamentsRes.data)) {
+              activeTournaments = tournamentsRes.data.filter((t: any) => t.status === 'ongoing').length;
+            }
+
+            if (logsRes.status === 'success' && Array.isArray(logsRes.data)) {
+              const logs = logsRes.data;
+              setActivities(logs.slice(0, 5).map((l: any) => ({
+                id: l.id,
+                title: l.action,
+                description: l.details || 'System activity',
+                timestamp: new Date(l.created_at || Date.now()).toLocaleTimeString(),
+                status: 'logged'
+              })));
+            }
 
             setStats([
-              { label: 'Total Active Users', value: users.filter((u: any) => u.status === 'active').length.toString(), icon: <Users className="text-blue-600" />, trend: '+12%', color: 'bg-blue-50' },
-              { label: 'Active Tournaments', value: tournaments.filter((t: any) => t.status === 'ongoing').length.toString(), icon: <Trophy className="text-emerald-600" />, trend: 'Live', color: 'bg-emerald-50' },
+              { label: 'Total Active Users', value: usersCount.toString(), icon: <Users className="text-blue-600" />, trend: '+12%', color: 'bg-blue-50' },
+              { label: 'Active Tournaments', value: activeTournaments.toString(), icon: <Trophy className="text-emerald-600" />, trend: 'Live', color: 'bg-emerald-50' },
               { label: 'Pending Approvals', value: pendingApprovals.toString(), icon: <ShieldCheck className="text-amber-600" />, trend: 'Action Required', color: 'bg-amber-50' },
               { label: 'System Health', value: '99.9%', icon: <HeartPulse className="text-indigo-600" />, trend: 'Stable', color: 'bg-indigo-50' },
               { label: 'Compliance', value: '94%', icon: <ShieldCheck className="text-emerald-600" />, trend: 'Good', color: 'bg-emerald-50' },
               { label: 'Revenue (MTD)', value: 'KES 1.2M', icon: <DollarSign className="text-emerald-600" />, trend: '+8%', color: 'bg-emerald-50' },
             ]);
-
-            setActivities(logs.slice(0, 5).map((l: any) => ({
-              id: l.id,
-              title: l.action,
-              description: `${l.full_name}: ${l.details}`,
-              timestamp: new Date(l.created_at).toLocaleTimeString(),
-              status: 'logged'
-            })));
           } else {
-            // Regular user data fetching - use safeFetch for graceful fallback
-            const responses = await Promise.all([
-              safeFetch(`/api/players?user_id=${user.user_id}`),
-              safeFetch(`/api/tournaments`),
-              safeFetch(`/api/matches?user_id=${user.user_id}`),
-              safeFetch(`/api/clubs?user_id=${user.user_id}`)
-            ]);
+            // Regular user dashboard - fetch user-specific data
+            const dashResponse = await ApiClient.getUserDashboard();
+            let dashStats = dashResponse.data || {};
 
-            const [playersRes, tournamentsRes, matchesRes, clubsRes] = responses;
+            if (dashResponse.status === 'success') {
+              setStats([
+                { 
+                  label: 'Clubs', 
+                  value: dashStats.clubs_count?.toString() || '0',
+                  icon: <Users className="text-blue-600" />, 
+                  trend: 'Affiliated', 
+                  color: 'bg-blue-50' 
+                },
+                { 
+                  label: 'Active Tournaments', 
+                  value: dashStats.tournaments_registered?.toString() || '0',
+                  icon: <Trophy className="text-emerald-600" />, 
+                  trend: 'Registered', 
+                  color: 'bg-emerald-50' 
+                },
+                { 
+                  label: 'Matches Played', 
+                  value: dashStats.matches_played?.toString() || '0',
+                  icon: <Activity className="text-amber-600" />, 
+                  trend: 'Total', 
+                  color: 'bg-amber-50' 
+                },
+                { 
+                  label: 'Ranking', 
+                  value: dashStats.ranking?.position?.toString() || 'N/A',
+                  icon: <TrendingUp className="text-indigo-600" />, 
+                  trend: 'Position', 
+                  color: 'bg-indigo-50' 
+                },
+                {
+                  label: 'Wins',
+                  value: dashStats.ranking?.wins?.toString() || '0',
+                  icon: <Trophy className="text-amber-500" />,
+                  trend: 'Success',
+                  color: 'bg-amber-50'
+                },
+                {
+                  label: 'Losses',
+                  value: dashStats.ranking?.losses?.toString() || '0',
+                  icon: <AlertCircle className="text-red-600" />,
+                  trend: 'Record',
+                  color: 'bg-red-50'
+                }
+              ]);
+            }
 
-          const players = await playersRes.json();
-          const tournaments = await tournamentsRes.json();
-          const matches = await matchesRes.json();
-          const clubs = await clubsRes.json();
-
-          setStats([
-            { label: 'Total Players', value: Array.isArray(players) ? players.length.toString() : '0', icon: <Users className="text-blue-600" />, trend: 'Registered', color: 'bg-blue-50' },
-            { label: 'Active Tournaments', value: Array.isArray(tournaments) ? tournaments.length.toString() : '0', icon: <Trophy className="text-emerald-600" />, trend: 'Upcoming', color: 'bg-emerald-50' },
-            { label: 'Matches', value: Array.isArray(matches) ? matches.length.toString() : '0', icon: <Activity className="text-amber-600" />, trend: 'Total', color: 'bg-amber-50' },
-            { label: 'Clubs', value: Array.isArray(clubs) ? clubs.length.toString() : '0', icon: <TrendingUp className="text-indigo-600" />, trend: 'Affiliated', color: 'bg-indigo-50' },
-          ]);
-          
-            if (Array.isArray(matches)) {
-              setActivities(matches.slice(0, 5).map((m: any) => ({
+            // Fetch user matches for activity feed
+            const matchesRes = await ApiClient.getUserMatches();
+            if (matchesRes.status === 'success' && Array.isArray(matchesRes.data)) {
+              setActivities(matchesRes.data.slice(0, 5).map((m: any) => ({
                 id: m.id,
-                title: `${m.player1_name} vs ${m.player2_name}`,
-                description: m.tournament_name || 'Unknown Tournament',
-                timestamp: 'Just now', // Ideally fetch real timestamp
+                title: `${m.player1?.name || 'Player 1'} vs ${m.player2?.name || 'Player 2'}`,
+                description: m.tournament || 'Tournament',
+                timestamp: m.scheduled_date ? new Date(m.scheduled_date).toLocaleTimeString() : 'Scheduled',
                 status: m.status
               })));
             }
           }
-        } catch (error) {
-          console.error('Failed to fetch dashboard data:', error);
+        } catch (err: any) {
+          console.error('Failed to fetch dashboard data:', err);
+          setError(err.message || 'Failed to load dashboard data');
+        } finally {
+          setLoading(false);
         }
       };
 
       fetchData();
     }
-  }, [user]);
+  }, [user, activeRole]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return <DashboardLayout stats={stats} activities={activities} />;
 }
+

@@ -3,11 +3,13 @@ import { useAuthStore } from './store/authStore';
 import { initializeTheme } from './store/themeStore';
 import Auth from './components/Auth';
 import Layout from './components/Layout';
+import ApiClient from './utils/api';
 import Dashboard from './components/Dashboard';
 import ClubManagerDashboard from './components/ClubManagerDashboard';
 import RefereePortal from './components/RefereePortal';
 import PlayerPortal from './components/PlayerPortal';
 import UserManagement from './components/UserManagement';
+import AdminApprovalDashboard from './components/AdminApprovalDashboard';
 import Tournaments from './components/Tournaments';
 import LandingPage from './components/LandingPage';
 import LandingPageNew from './components/LandingPageNew';
@@ -51,15 +53,77 @@ import TournamentBracketGenerator from './components/TournamentBracketGenerator'
 import BracketView from './components/BracketView';
 
 export default function App() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [navigationHistory, setNavigationHistory] = useState<string[]>(['dashboard']);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [showAuth, setShowAuth] = useState(false);
   const [landingPage, setLandingPage] = useState<'home' | 'about' | 'contact' | 'activities'>('home');
+  const [loading, setLoading] = useState(true);
 
   // Initialize theme on app load
   useEffect(() => {
     initializeTheme();
   }, []);
+
+  // Check if user session is still valid (backend persistence)
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await ApiClient.getProfile();
+        if (response.status === 'success' && response.data) {
+          // User session is valid, restore it
+          setUser(response.data.user || response.data);
+        }
+      } catch (err) {
+        console.log('Session check failed - user needs to login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+  }, [setUser]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Navigation functions with history support
+  const navigate = (tab: string) => {
+    if (tab === activeTab) return; // Don't add duplicate to history
+    
+    // If we're not at the end of history, remove future history
+    const newHistory = navigationHistory.slice(0, historyIndex + 1);
+    newHistory.push(tab);
+    
+    setNavigationHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    setActiveTab(tab);
+  };
+
+  const goBack = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setActiveTab(navigationHistory[newIndex]);
+    }
+  };
+
+  const goForward = () => {
+    if (historyIndex < navigationHistory.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setActiveTab(navigationHistory[newIndex]);
+    }
+  };
 
   if (!user) {
     if (showAuth) {
@@ -90,6 +154,8 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
+      case 'approval-dashboard':
+        return <AdminApprovalDashboard />;
       case 'club-manager-dashboard':
         return <ClubManagerDashboard />;
       case 'referee-portal':
@@ -206,7 +272,14 @@ export default function App() {
   };
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+    <Layout 
+      activeTab={activeTab} 
+      setActiveTab={navigate}
+      onBack={goBack}
+      onForward={goForward}
+      canGoBack={historyIndex > 0}
+      canGoForward={historyIndex < navigationHistory.length - 1}
+    >
       {renderContent()}
     </Layout>
   );

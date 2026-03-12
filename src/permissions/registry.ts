@@ -98,6 +98,7 @@ export const moduleRegistry: ModuleConfig[] = [
 
   // Super Admin
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard', path: '/dashboard', section: 'Overview' },
+  { id: 'approval-dashboard', label: 'Approval Dashboard', icon: ShieldCheck, permission: 'manage_users', path: '/approval-dashboard', section: 'Overview' },
   { id: 'users', label: 'User Management', icon: Users, permission: 'manage_users', path: '/users', section: 'Governance Control' },
   { id: 'roles-permissions', label: 'Role & Permission Manager', icon: Shield, permission: 'manage_roles_permissions', path: '/roles-permissions', section: 'Governance Control' },
   { id: 'governance-structure', label: 'Governance Structure', icon: Landmark, permission: 'manage_governance_structure', path: '/governance-structure', section: 'Governance Control' },

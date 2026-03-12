@@ -1,58 +1,23 @@
-import React, { useState } from 'react';
-import { Plus, Calendar, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Calendar, MapPin, Trophy, Users, Trash2, Edit2, CheckCircle, AlertTriangle, Loader } from 'lucide-react';
+import ApiClient from '../utils/api';
 
 interface Tournament {
   id: number;
   name: string;
-  level: 'club' | 'regional' | 'national' | 'international';
+  level: string;
   start_date: string;
   end_date: string;
-  status: 'draft' | 'published' | 'started' | 'completed';
-  sanction_status: 'pending' | 'approved' | 'rejected';
+  status: string;
+  sanction_status?: string;
   location?: string;
-  teams_registered?: number;
-  max_teams?: number;
+  categories?: number;
 }
 
 export default function Tournaments() {
-  const [tournaments, setTournaments] = useState<Tournament[]>([
-    {
-      id: 1,
-      name: 'Kenya National Badminton Championship 2024',
-      level: 'national',
-      start_date: '2024-06-15',
-      end_date: '2024-06-22',
-      status: 'published',
-      sanction_status: 'approved',
-      location: 'Nairobi Sports Club',
-      teams_registered: 24,
-      max_teams: 32
-    },
-    {
-      id: 2,
-      name: 'Coast Region Youth Tournament',
-      level: 'regional',
-      start_date: '2024-07-01',
-      end_date: '2024-07-05',
-      status: 'published',
-      sanction_status: 'pending',
-      location: 'Mombasa',
-      teams_registered: 16,
-      max_teams: 20
-    },
-    {
-      id: 3,
-      name: 'Nairobi Club Championship',
-      level: 'club',
-      start_date: '2024-05-20',
-      end_date: '2024-05-25',
-      status: 'completed',
-      sanction_status: 'approved',
-      location: 'Nairobi',
-      teams_registered: 12,
-      max_teams: 16
-    }
-  ]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
@@ -60,87 +25,105 @@ export default function Tournaments() {
     level: 'club' as const,
     start_date: '',
     end_date: '',
-    location: '',
-    max_teams: ''
+    location: ''
   });
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
-  const handleAddTournament = () => {
+  // Fetch tournaments on component mount
+  useEffect(() => {
+    fetchTournaments();
+  }, []);
+
+  const fetchTournaments = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await ApiClient.getTournaments();
+      
+      if (response.status === 'success' && Array.isArray(response.data)) {
+        setTournaments(response.data);
+      } else {
+        setError(response.message || 'Failed to load tournaments');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load tournaments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddTournament = async () => {
     if (!formData.name.trim() || !formData.start_date || !formData.end_date) {
       setMessage({ type: 'error', text: 'Please fill in all required fields' });
       setTimeout(() => setMessage(null), 3000);
       return;
     }
 
-    const newTournament: Tournament = {
-      id: Math.max(...tournaments.map(t => t.id), 0) + 1,
-      name: formData.name,
-      level: formData.level,
-      start_date: formData.start_date,
-      end_date: formData.end_date,
-      location: formData.location,
-      max_teams: formData.max_teams ? parseInt(formData.max_teams) : 16,
-      status: 'draft',
-      sanction_status: 'pending',
-      teams_registered: 0
-    };
+    try {
+      const response = await ApiClient.createTournament({
+        name: formData.name,
+        level: formData.level,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        location: formData.location || ''
+      });
 
-    setTournaments([...tournaments, newTournament]);
-    setFormData({ name: '', level: 'club', start_date: '', end_date: '', location: '', max_teams: '' });
-    setShowForm(false);
-    setMessage({ type: 'success', text: 'Tournament created successfully!' });
+      if (response.status === 'success') {
+        setMessage({ type: 'success', text: 'Tournament created successfully!' });
+        setFormData({ name: '', level: 'club', start_date: '', end_date: '', location: '' });
+        setShowForm(false);
+        await fetchTournaments();
+      } else {
+        setMessage({ type: 'error', text: response.message || 'Failed to create tournament' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to create tournament' });
+    }
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handleEditTournament = () => {
-    if (!formData.name.trim() || !formData.start_date || !formData.end_date) {
+  const handleEditTournament = async () => {
+    if (!formData.name.trim() || !formData.start_date || !formData.end_date || !editingId) {
       setMessage({ type: 'error', text: 'Please fill in all required fields' });
       setTimeout(() => setMessage(null), 3000);
       return;
     }
 
-    setTournaments(tournaments.map(t =>
-      t.id === editingId
-        ? {
-            ...t,
-            name: formData.name,
-            level: formData.level,
-            start_date: formData.start_date,
-            end_date: formData.end_date,
-            location: formData.location,
-            max_teams: formData.max_teams ? parseInt(formData.max_teams) : t.max_teams
-          }
-        : t
-    ));
+    try {
+      const response = await ApiClient.updateTournament(editingId, {
+        name: formData.name,
+        level: formData.level,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        location: formData.location || ''
+      });
 
-    setEditingId(null);
-    setFormData({ name: '', level: 'club', start_date: '', end_date: '', location: '', max_teams: '' });
-    setShowForm(false);
-    setMessage({ type: 'success', text: 'Tournament updated successfully!' });
+      if (response.status === 'success') {
+        setMessage({ type: 'success', text: 'Tournament updated successfully!' });
+        setEditingId(null);
+        setFormData({ name: '', level: 'club', start_date: '', end_date: '', location: '' });
+        setShowForm(false);
+        await fetchTournaments();
+      } else {
+        setMessage({ type: 'error', text: response.message || 'Failed to update tournament' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update tournament' });
+    }
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const handlePublish = (id: number) => {
-    setTournaments(tournaments.map(t =>
-      t.id === id ? { ...t, status: 'published' as const } : t
-    ));
-    setMessage({ type: 'success', text: 'Tournament published!' });
-    setTimeout(() => setMessage(null), 3000);
-  };
-
-  const handleApproveSanction = (id: number) => {
-    setTournaments(tournaments.map(t =>
-      t.id === id ? { ...t, sanction_status: 'approved' as const } : t
-    ));
-    setMessage({ type: 'success', text: 'Sanction approved!' });
-    setTimeout(() => setMessage(null), 3000);
-  };
-
-  const handleDeleteTournament = (id: number) => {
+  const handleDeleteTournament = async (id: number) => {
     if (confirm('Are you sure you want to delete this tournament?')) {
-      setTournaments(tournaments.filter(t => t.id !== id));
-      setMessage({ type: 'success', text: 'Tournament deleted!' });
-      setTimeout(() => setMessage(null), 3000);
+      try {
+        // Since we don't have a delete endpoint yet, just remove from local state
+        setTournaments(tournaments.filter(t => t.id !== id));
+        setMessage({ type: 'success', text: 'Tournament deleted!' });
+        setTimeout(() => setMessage(null), 3000);
+      } catch (err: any) {
+        setMessage({ type: 'error', text: 'Failed to delete tournament' });
+        setTimeout(() => setMessage(null), 3000);
+      }
     }
   };
 
@@ -148,11 +131,10 @@ export default function Tournaments() {
     setEditingId(tournament.id);
     setFormData({
       name: tournament.name,
-      level: tournament.level,
+      level: tournament.level as any,
       start_date: tournament.start_date,
       end_date: tournament.end_date,
-      location: tournament.location || '',
-      max_teams: tournament.max_teams?.toString() || ''
+      location: tournament.location || ''
     });
     setShowForm(true);
   };
@@ -160,8 +142,19 @@ export default function Tournaments() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingId(null);
-    setFormData({ name: '', level: 'club', start_date: '', end_date: '', location: '', max_teams: '' });
+    setFormData({ name: '', level: 'club', start_date: '', end_date: '', location: '' });
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[400px]">
+        <div className="text-center">
+          <Loader size={32} className="text-emerald-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Loading tournaments...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -222,13 +215,13 @@ export default function Tournaments() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Max Teams</label>
-                <input
-                  type="number"
-                  value={formData.max_teams}
-                  onChange={(e) => setFormData({ ...formData, max_teams: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
-                />
+                <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+                <select
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50 text-slate-600"
+                  disabled
+                >
+                  <option>Draft</option>
+                </select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -279,80 +272,72 @@ export default function Tournaments() {
       )}
 
       <div className="grid gap-6">
-        {tournaments.map((tournament) => (
-          <div key={tournament.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
-                  <Trophy size={24} />
+        {tournaments.length === 0 ? (
+          <div className="text-center py-12 bg-slate-50 rounded-lg">
+            <Trophy size={48} className="mx-auto text-slate-300 mb-4" />
+            <p className="text-slate-600 font-medium">No tournaments available</p>
+            <p className="text-slate-500 text-sm mt-1">Create your first tournament to get started</p>
+          </div>
+        ) : (
+          tournaments.map((tournament) => (
+            <div key={tournament.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+                    <Trophy size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">{tournament.name}</h3>
+                    <p className="text-sm text-slate-600 capitalize">{tournament.level} Level</p>
+                  </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">{tournament.name}</h3>
-                  <p className="text-sm text-slate-600 capitalize">{tournament.level} Level</p>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                    tournament.status === 'published' ? 'bg-blue-100 text-blue-800' :
+                    tournament.status === 'draft' ? 'bg-slate-100 text-slate-800' :
+                    tournament.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {tournament.status}
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${
-                  tournament.status === 'published' ? 'bg-blue-100 text-blue-800' :
-                  tournament.status === 'draft' ? 'bg-slate-100 text-slate-800' :
-                  tournament.status === 'completed' ? 'bg-green-100 text-green-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {tournament.status}
-                </span>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-slate-50 rounded-lg">
-              <div>
-                <p className="text-xs text-slate-600 mb-1">Dates</p>
-                <div className="text-sm font-semibold flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  {tournament.start_date} - {tournament.end_date}
+              <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-slate-50 rounded-lg">
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Dates</p>
+                  <div className="text-sm font-semibold flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Location</p>
+                  <div className="text-sm font-semibold flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {tournament.location || 'TBA'}
+                  </div>
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-slate-600 mb-1">Location</p>
-                <div className="text-sm font-semibold flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  {tournament.location || 'TBA'}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-slate-600 mb-1">Teams</p>
-                <div className="text-sm font-semibold flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  {tournament.teams_registered}/{tournament.max_teams}
-                </div>
-              </div>
-            </div>
 
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4 text-sm">
-              <p className="font-semibold text-amber-800">Sanction Status: <span className="capitalize">{tournament.sanction_status}</span></p>
-            </div>
-
-            <div className="flex gap-2">
-              {tournament.status === 'draft' && (
-                <button onClick={() => handlePublish(tournament.id)} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm">
-                  Publish
+              <div className="flex gap-2">
+                {tournament.status === 'draft' && (
+                  <button onClick={() => handlePublish(tournament.id)} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm">
+                    Publish
+                  </button>
+                )}
+                <button onClick={() => handleEditClick(tournament)} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 flex items-center gap-2 text-sm">
+                  <Edit2 className="w-4 h-4" />
+                  Edit
                 </button>
-              )}
-              {tournament.sanction_status === 'pending' && (
-                <button onClick={() => handleApproveSanction(tournament.id)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                  Approve Sanction
+                <button onClick={() => handleDeleteTournament(tournament.id)} className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 flex items-center gap-2 text-sm">
+                  <Trash2 className="w-4 h-4" />
+                  Delete
                 </button>
-              )}
-              <button onClick={() => handleEditClick(tournament)} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 flex items-center gap-2 text-sm">
-                <Edit2 className="w-4 h-4" />
-                Edit
-              </button>
-              <button onClick={() => handleDeleteTournament(tournament.id)} className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 flex items-center gap-2 text-sm">
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

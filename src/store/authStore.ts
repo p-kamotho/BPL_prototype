@@ -72,8 +72,10 @@ export const useAuthStore = create<AuthState>()(
       activeRole: null,
       setUser: (user) => {
         if (user) {
+          // Ensure roles array exists (default to empty if undefined)
+          const rolesArray = user.roles || [];
           // Populate permissions for each role based on role_name
-          const updatedRoles = user.roles.map(role => ({
+          const updatedRoles = rolesArray.map(role => ({
             ...role,
             permissions: role.permissions.length > 0 ? role.permissions : rolePermissions[role.role_name] || []
           }));

@@ -5,9 +5,14 @@ import {
   LogOut,
   ChevronDown,
   Menu,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import ApiClient from '../utils/api';
 import { ThemeToggle } from './ThemeToggle';
 import { motion, AnimatePresence } from 'motion/react';
 import { moduleRegistry } from '../permissions/registry';
@@ -22,19 +27,62 @@ interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  onBack?: () => void;
+  onForward?: () => void;
+  canGoBack?: boolean;
+  canGoForward?: boolean;
 }
 
-export default function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
+export default function Layout({ 
+  children, 
+  activeTab, 
+  setActiveTab,
+  onBack,
+  onForward,
+  canGoBack = false,
+  canGoForward = false
+}: LayoutProps) {
   const { user, activeRole, setActiveRole, logout } = useAuthStore();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [deletingAccount, setDeletingAccount] = React.useState(false);
 
+  const handleDeleteAccount = async () => {
+    try {
+      setDeletingAccount(true);
+      console.log('Attempting to delete account...');
+      const response = await ApiClient.deleteAccount();
+      console.log('Delete account response:', response);
+      
+      if (response && response.status === 'success') {
+        console.log('Account deleted successfully');
+        // Logout and redirect to landing page
+        logout();
+        setShowDeleteConfirm(false);
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 500);
+      } else {
+        const errorMsg = response?.message || 'Failed to delete account';
+        console.error('Delete account error:', errorMsg);
+        alert(errorMsg);
+        setShowDeleteConfirm(false);
+      }
+    } catch (err: any) {
+      console.error('Delete account exception:', err);
+      alert(`Error: ${err.message || 'Error deleting account'}`);
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
   if (!user) return <>{children}</>;
 
   const filteredNavItems = moduleRegistry.filter(item => 
     hasPermission(activeRole, item.permission)
   );
 
-  const approvedRoles = user.roles.filter(r => r.status === 'approved');
+  const approvedRoles = (user.roles || []).filter(r => r.status === 'approved');
 
   const SidebarContent = () => {
     const sections = filteredNavItems.reduce((acc: any, item) => {
@@ -167,7 +215,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
+        <div className="p-4 border-t border-slate-100 space-y-2">
           <button
             onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
@@ -175,7 +223,48 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
             <LogOut size={20} />
             <span>Logout</span>
           </button>
+          
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200"
+          >
+            <Trash2 size={20} />
+            <span>Delete Account</span>
+          </button>
         </div>
+
+        {/* Delete Account Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4 text-red-600">
+                <AlertCircle size={24} />
+                <h3 className="text-lg font-bold">Delete Account</h3>
+              </div>
+              
+              <p className="text-slate-700 dark:text-slate-300 mb-6">
+                Are you sure you want to delete your account? This action cannot be undone. All your data will be permanently deleted.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deletingAccount}
+                  className="flex-1 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-all disabled:opacity-50"
+                >
+                  {deletingAccount ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -222,6 +311,27 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
             >
               <Menu size={24} />
             </button>
+
+            {/* Back/Forward Navigation */}
+            <div className="flex items-center gap-2 border-r border-slate-200 dark:border-slate-700 pr-4">
+              <button
+                onClick={onBack}
+                disabled={!canGoBack}
+                className="p-2 text-slate-500 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                title="Go back"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={onForward}
+                disabled={!canGoForward}
+                className="p-2 text-slate-500 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                title="Go forward"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+
             <h2 className="text-base lg:text-lg font-semibold text-slate-800 dark:text-white capitalize truncate max-w-[150px] lg:max-w-none">
               {activeTab.replace('-', ' ')}
             </h2>
