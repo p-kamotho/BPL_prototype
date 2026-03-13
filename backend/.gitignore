@@ -1,0 +1,105 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Database
+db.sqlite3
+*.sqlite3
+*.db
+*.sqlite
+
+# Django
+*.log
+/media/
+/staticfiles/
+/static/
+*.pot
+local_settings.py
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+.envrc
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.vim/
+.project
+.pydevproject
+.settings/
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.hypothesis/
+
+# OS
+Thumbs.db
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Temp files
+*.tmp
+*.bak
+*.backup
+*~
+.~*
+
+# Logs directory
+logs/
+*.log.*
+
+# Node (if any)
+node_modules/
+npm-debug.log
+
+# Generated files
+*.pyc
+.cache/
+
+# Docker (if using)
+.docker/
+
+# Backup files
+*.bak
+*.backup
