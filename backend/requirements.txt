@@ -7,4 +7,4 @@ pillow==10.4.0
 celery==5.2.7
 redis==4.5.4
 requests==2.31.0
-setuptools == 82.0.0
+setuptools == 80.0.0
